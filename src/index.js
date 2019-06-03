@@ -1,35 +1,47 @@
-import React, { Fragment, useState, useEffect } from 'react';
+import React, { Fragment, useState, useEffect, useReducer } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 
 import './styles.css';
 
+const dataFetchReducer = (state, action) => {};
+
 const useDataApi = (initialUrl, initialData) => {
-  const [data, setData] = useState(initialData);
   const [url, setUrl] = useState(initialUrl);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isError, setIsError] = useState(false);
+
+  const [state, dispatch] = useReducer(dataFetchReducer, {
+    isLoading: false,
+    isError: false,
+    data: initialData
+  });
 
   useEffect(() => {
+    let didCancel = false;
+
     const fetchData = async () => {
-      setIsError(false);
-      setIsLoading(true);
+      dispatch({ type: 'FETCH_INIT' });
 
       try {
         const result = await axios(url);
 
-        setData(result.data);
+        if (!didCancel) {
+          dispatch({ type: 'FETCH_SUCCESS', payload: result.data });
+        }
       } catch (error) {
-        setIsError(true);
+        if (!didCancel) {
+          dispatch({ type: 'FETCH_FAILURE' });
+        }
       }
-
-      setIsLoading(false);
     };
 
     fetchData();
+
+    return () => {
+      didCancel = true;
+    };
   }, [url]);
 
-  return [{ data, isLoading, isError }, setUrl];
+  return [state, setUrl];
 };
 
 function App() {
